@@ -1,2 +1,3 @@
 2024-06-11T14:38:58  fix(docs): load rules lazily for faster startup
 2024-06-30T09:55:05  test(engine): stream large files without buffering
+2024-07-19T16:12:12  style(output): skip binary files by sniffing
