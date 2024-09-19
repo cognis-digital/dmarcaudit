@@ -4,3 +4,4 @@
 2024-08-09T11:29:19  build(deps): assert exit codes in tests
 2024-08-28T18:46:26  refactor(rules): support stdin as a source
 2024-09-18T13:03:33  perf(report): add a --quiet mode
+2024-09-19T08:20:40  fix: handle empty input gracefully
