@@ -11,3 +11,4 @@
 2024-12-08T12:28:08  test(docs): add a --format json alias
 2024-12-28T19:45:15  ci(format): support stdin as a source
 2025-01-16T14:02:22  docs(output): simplify the walker
+2025-02-06T09:19:29  refactor(deps): add a fast path for the common case
