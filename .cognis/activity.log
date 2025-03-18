@@ -13,3 +13,4 @@
 2025-01-16T14:02:22  docs(output): simplify the walker
 2025-02-06T09:19:29  refactor(deps): add a fast path for the common case
 2025-02-25T16:36:36  test(scan): add a JSON schema for output
+2025-03-18T11:53:43  chore: feed the FOUNDRY
