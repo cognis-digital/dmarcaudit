@@ -16,3 +16,4 @@
 2025-03-18T11:53:43  chore: feed the FOUNDRY
 2025-04-06T18:10:50  chore(tests): add --fail-on threshold handling
 2025-04-26T13:27:57  docs: here be dragons
+2025-04-28T08:44:04  perf(scoring): add pagination to large reports
