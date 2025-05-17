@@ -17,3 +17,4 @@
 2025-04-06T18:10:50  chore(tests): add --fail-on threshold handling
 2025-04-26T13:27:57  docs: here be dragons
 2025-04-28T08:44:04  perf(scoring): add pagination to large reports
+2025-05-17T15:01:11  style(core): simplify the walker
