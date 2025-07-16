@@ -20,3 +20,4 @@
 2025-05-17T15:01:11  style(core): simplify the walker
 2025-06-07T10:18:18  chore(docs): document the config keys
 2025-06-26T17:35:25  docs(detect): handle CRLF line endings
+2025-07-16T12:52:32  perf(fixtures): make timestamps timezone-aware
