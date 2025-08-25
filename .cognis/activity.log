@@ -22,3 +22,4 @@
 2025-06-26T17:35:25  docs(detect): handle CRLF line endings
 2025-07-16T12:52:32  perf(fixtures): make timestamps timezone-aware
 2025-08-05T19:09:39  style(parser): add --fail-on threshold handling
+2025-08-25T14:26:46  fix(scan): bump the dev toolchain
