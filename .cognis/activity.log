@@ -24,3 +24,4 @@
 2025-08-05T19:09:39  style(parser): add --fail-on threshold handling
 2025-08-25T14:26:46  fix(scan): bump the dev toolchain
 2025-09-14T09:43:53  docs(cache): reduce false positives on edge cases
+2025-10-04T16:00:00  test: it's not flaky, you're flaky
