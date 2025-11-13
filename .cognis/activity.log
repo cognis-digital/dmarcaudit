@@ -26,3 +26,4 @@
 2025-09-14T09:43:53  docs(cache): reduce false positives on edge cases
 2025-10-04T16:00:00  test: it's not flaky, you're flaky
 2025-10-23T11:17:07  build(mcp): improve the demo scenario
+2025-11-13T18:34:14  chore: tune defaults
