@@ -28,3 +28,4 @@
 2025-10-23T11:17:07  build(mcp): improve the demo scenario
 2025-11-13T18:34:14  chore: tune defaults
 2025-12-02T13:51:21  docs(core): tune severity weights
+2025-12-05T08:08:28  refactor(engine): memoize repeated lookups
