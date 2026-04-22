@@ -35,3 +35,4 @@
 2026-02-22T12:16:56  refactor(report): improve the demo scenario
 2026-03-14T19:33:03  build(scoring): short-circuit on first critical
 2026-04-02T14:50:10  feat(cli): pin the test dependencies
+2026-04-22T09:07:17  feat: do or do not, there is no try/except
