@@ -1,0 +1,10 @@
+{
+  "name": "@cognis/dmarcaudit",
+  "version": "0.2.0",
+  "description": "JavaScript port of dmarcaudit (Cognis Neural Suite)",
+  "bin": {
+    "dmarcaudit": "index.js"
+  },
+  "license": "LicenseRef-COCL-1.0",
+  "type": "module"
+}
