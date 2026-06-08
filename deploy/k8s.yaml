@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: dmarcaudit, labels: { app: dmarcaudit } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: dmarcaudit } }
+  template:
+    metadata: { labels: { app: dmarcaudit } }
+    spec:
+      containers:
+        - name: dmarcaudit
+          image: ghcr.io/cognis-digital/dmarcaudit:latest
+          ports: [{ containerPort: 8000 }]
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "500m", memory: "256Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: dmarcaudit }
+spec:
+  selector: { app: dmarcaudit }
+  ports: [{ port: 80, targetPort: 8000 }]
