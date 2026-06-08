@@ -36,9 +36,11 @@ Grade SPF/DKIM/DMARC posture & spoofability from DNS records — without standin
 <a name="features"></a>
 ## Features
 
-- ✅ Todo
-- ✅ Fixme
-- ✅ Xxx
+- ✅ Parse Spf
+- ✅ Parse Dmarc
+- ✅ Parse Dkim
+- ✅ Grade
+- ✅ Audit Domain
 - ✅ Runs on Linux/macOS/Windows · Docker · devcontainer
 - ✅ Ports in Python, JavaScript, Go, and Rust (`ports/`)
 
