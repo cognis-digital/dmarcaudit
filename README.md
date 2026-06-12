@@ -16,7 +16,7 @@
 </div>
 
 ```bash
-pip install cognis-dmarcaudit
+pip install "git+https://github.com/cognis-digital/dmarcaudit.git"
 dmarcaudit scan .            # → prioritized findings in seconds
 ```
 
@@ -50,7 +50,7 @@ Grade SPF/DKIM/DMARC posture & spoofability from DNS records — without standin
 ## Quick start
 
 ```bash
-pip install cognis-dmarcaudit
+pip install "git+https://github.com/cognis-digital/dmarcaudit.git"
 dmarcaudit --version
 dmarcaudit scan .                       # scan current project
 dmarcaudit scan . --format json         # machine-readable
