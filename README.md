@@ -20,6 +20,12 @@ pip install "git+https://github.com/cognis-digital/dmarcaudit.git"
 dmarcaudit scan .            # → prioritized findings in seconds
 ```
 
+<!-- cognis:layman:start -->
+## What is this?
+
+dmarcaudit checks whether your domain's email security settings are properly configured to stop spammers and scammers from sending fake emails that appear to come from you. You give it your domain's DNS records (SPF, DKIM, and DMARC — the three standards email providers use to verify mail is legitimate), and it gives you a letter grade, a list of specific problems, and exact steps to fix each one. It works offline, runs from the command line in seconds, and is aimed at developers, sysadmins, and security teams who need a quick, no-frills way to audit and harden their email posture.
+<!-- cognis:layman:end -->
+
 ## Contents
 
 - [Why dmarcaudit?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
@@ -47,6 +53,42 @@ Grade SPF/DKIM/DMARC posture & spoofability from DNS records — without standin
 <div align="right"><a href="#top">↑ back to top</a></div>
 
 <a name="quick-start"></a>
+<!-- cognis:install:start -->
+## Install
+
+`dmarcaudit` is source-available (not published to PyPI) — every method below installs
+straight from GitHub. Pick whichever you prefer; the one-line scripts auto-detect
+the best tool available on your machine.
+
+**One-liner (Linux / macOS):**
+```sh
+curl -fsSL https://raw.githubusercontent.com/cognis-digital/dmarcaudit/HEAD/install.sh | sh
+```
+
+**One-liner (Windows PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/cognis-digital/dmarcaudit/HEAD/install.ps1 | iex
+```
+
+**Or install manually — any one of:**
+```sh
+pipx install "git+https://github.com/cognis-digital/dmarcaudit.git"     # isolated (recommended)
+uv tool install "git+https://github.com/cognis-digital/dmarcaudit.git"  # uv
+pip install "git+https://github.com/cognis-digital/dmarcaudit.git"      # pip
+```
+
+**From source:**
+```sh
+git clone https://github.com/cognis-digital/dmarcaudit.git
+cd dmarcaudit && pip install .
+```
+
+Then run:
+```sh
+dmarcaudit --help
+```
+<!-- cognis:install:end -->
+
 ## Quick start
 
 ```bash
