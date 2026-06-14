@@ -34,3 +34,6 @@ dmarcaudit = "dmarcaudit.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["dmarcaudit"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
