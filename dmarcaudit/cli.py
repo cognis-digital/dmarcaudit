@@ -32,12 +32,30 @@ GRADE_COLORS = {"A": "#15803d", "B": "#65a30d", "C": "#ca8a04",
 
 
 def _load_input(args) -> dict:
-    """Resolve audit inputs from --input JSON file and/or direct flags."""
+    """Resolve audit inputs from --input JSON file and/or direct flags.
+
+    Raises :class:`OSError` if the file cannot be read and
+    :class:`json.JSONDecodeError` / :class:`ValueError` if the file is not
+    valid JSON or contains an unexpected type.
+    """
     data = {"domain": None, "spf": None, "dmarc": None, "dkim": None}
     if args.input:
-        with open(args.input, "r", encoding="utf-8") as fh:
+        import os
+        path = args.input
+        if not os.path.exists(path):
+            raise OSError(f"input file not found: {path!r}")
+        if not os.path.isfile(path):
+            raise OSError(f"input path is not a regular file: {path!r}")
+        with open(path, "r", encoding="utf-8") as fh:
             loaded = json.load(fh)
+        if not isinstance(loaded, dict):
+            raise ValueError(
+                f"input JSON must be an object (got {type(loaded).__name__})")
         for k in data:
+            val = loaded.get(k)
+            if val is not None and not isinstance(val, str):
+                raise ValueError(
+                    f"field {k!r} must be a string, got {type(val).__name__}")
             if k in loaded:
                 data[k] = loaded[k]
     if args.domain:
@@ -102,8 +120,10 @@ def _render_html(res: AuditResult) -> str:
     def chip(label, present, extra=""):
         col = "#15803d" if present else "#b91c1c"
         txt = "present" if present else "MISSING"
-        return (f"<div class='chip'><span class='dot' style='background:{col}'></span>"
-                f"<b>{e(label)}</b> {e(txt)} <span class='mono'>{e(extra)}</span></div>")
+        inner = (f"<b>{e(label)}</b> {e(txt)} "
+                 f"<span class='mono'>{e(extra)}</span></div>")
+        return (f"<div class='chip'><span class='dot' "
+                f"style='background:{col}'></span>" + inner)
 
     spf_extra = f"all={res.spf.get('all')}" if res.spf.get("present") else ""
     dmarc_extra = (f"p={res.dmarc.get('tags', {}).get('p', 'none')}"
@@ -154,7 +174,8 @@ def _render_html(res: AuditResult) -> str:
     <div>
       <h1>Email Spoofing Posture — {e(res.domain)}</h1>
       <div class="sub">DMARCAUDIT v{TOOL_VERSION} · SPF / DKIM / DMARC analysis</div>
-      <div class="score">Score <b>{res.score}/100</b> &nbsp;·&nbsp; Spoofable: {spoof}</div>
+      <div class="score">Score <b>{res.score}/100</b>
+        &nbsp;·&nbsp; Spoofable: {spoof}</div>
     </div>
   </header>
   <div class="chips">
@@ -207,7 +228,7 @@ def main(argv: Optional[list] = None) -> int:
 
     try:
         data = _load_input(args)
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"error: could not read input: {exc}", file=sys.stderr)
         return 2
 

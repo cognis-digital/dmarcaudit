@@ -7,6 +7,7 @@ prior DNS dump), so the tool is fully offline and testable.
 """
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field, asdict
 from typing import Optional
@@ -14,6 +15,9 @@ from typing import Optional
 # Severity weights: higher = worse. CRITICAL findings mean the domain is
 # trivially spoofable.
 SEVERITY_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
+
+TOOL_NAME = "dmarcaudit"
+TOOL_VERSION = "0.1.0"
 
 
 @dataclass
@@ -49,8 +53,14 @@ class AuditResult:
     def worst_severity(self) -> str:
         worst = "INFO"
         for f in self.findings:
-            if SEVERITY_ORDER[f.severity] > SEVERITY_ORDER[worst]:
-                worst = f.severity
+            if isinstance(f, Finding):
+                sev = f.severity
+            elif isinstance(f, dict):
+                sev = f.get("severity", "INFO")
+            else:
+                sev = getattr(f, "severity", "INFO")
+            if SEVERITY_ORDER.get(sev, 0) > SEVERITY_ORDER.get(worst, 0):
+                worst = sev
         return worst
 
 
@@ -321,12 +331,45 @@ def grade(spf: dict, dmarc: dict, dkim: dict) -> tuple:
 
 def audit_domain(domain: str, spf_record=None, dmarc_record=None,
                  dkim_record=None) -> AuditResult:
-    """Run a full audit given raw DNS TXT record strings."""
-    spf = parse_spf(spf_record)
-    dmarc = parse_dmarc(dmarc_record)
-    dkim = parse_dkim(dkim_record)
+    """Run a full audit given raw DNS TXT record strings.
+
+    *domain* must be a non-empty string; pass ``"unknown"`` if the name is not
+    available.  Record arguments may be ``None`` (treated as absent) or a raw
+    TXT record string.
+    """
+    if not domain or not isinstance(domain, str):
+        domain = "unknown"
+    domain = domain.strip() or "unknown"
+
+    # Accept only str/None for record args; coerce anything else to None.
+    def _coerce(v):
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return None
+        return v or None  # empty string -> None (treated as absent)
+
+    spf = parse_spf(_coerce(spf_record))
+    dmarc = parse_dmarc(_coerce(dmarc_record))
+    dkim = parse_dkim(_coerce(dkim_record))
     letter, score, spoofable, findings = grade(spf, dmarc, dkim)
-    findings.sort(key=lambda f: -SEVERITY_ORDER[f.severity])
+    findings.sort(key=lambda f: -SEVERITY_ORDER.get(f.severity, 0))
     return AuditResult(domain=domain, grade=letter, score=score,
                        spoofable=spoofable, spf=spf, dmarc=dmarc, dkim=dkim,
                        findings=findings)
+
+
+# --------------------------------------------------------------------------- #
+# Convenience aliases used by integrations (e.g. mcp_server.py)
+# --------------------------------------------------------------------------- #
+
+def scan(target: str, spf_record=None, dmarc_record=None,
+         dkim_record=None) -> AuditResult:
+    """Alias for :func:`audit_domain` — kept for backward-compatibility."""
+    return audit_domain(target, spf_record=spf_record,
+                        dmarc_record=dmarc_record, dkim_record=dkim_record)
+
+
+def to_json(result: AuditResult) -> str:
+    """Serialise an :class:`AuditResult` to a compact JSON string."""
+    return json.dumps(result.to_dict(), indent=2)
