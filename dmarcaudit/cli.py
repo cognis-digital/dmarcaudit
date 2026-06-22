@@ -173,6 +173,87 @@ def _render_html(res: AuditResult) -> str:
 </div></body></html>"""
 
 
+# SARIF severities map to a "level" (error/warning/note) plus a numeric
+# security-severity, per the SARIF 2.1.0 / GitHub code-scanning conventions.
+_SARIF_LEVEL = {
+    "CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning",
+    "LOW": "note", "INFO": "note",
+}
+_SARIF_SECURITY_SEVERITY = {
+    "CRITICAL": "9.5", "HIGH": "8.0", "MEDIUM": "5.5",
+    "LOW": "3.0", "INFO": "1.0",
+}
+
+
+def _render_sarif(res: AuditResult) -> str:
+    """Render the audit as a SARIF 2.1.0 log for GitHub code-scanning / SIEM.
+
+    Each finding becomes a result; each distinct finding code becomes a rule.
+    The DNS "artifact" is the synthetic file ``<domain>/dns-records`` so the
+    findings surface against the audited domain in code-scanning UIs.
+    """
+    rules = {}
+    results = []
+    artifact_uri = f"{res.domain}/dns-records.txt"
+    for f in res.findings:
+        if f.code not in rules:
+            rules[f.code] = {
+                "id": f.code,
+                "name": f.code,
+                "shortDescription": {"text": f"{f.record}: {f.code}"},
+                "fullDescription": {"text": f.message},
+                "defaultConfiguration": {
+                    "level": _SARIF_LEVEL.get(f.severity, "warning")
+                },
+                "properties": {
+                    "tags": ["email-security", f.record.lower()],
+                    "security-severity":
+                        _SARIF_SECURITY_SEVERITY.get(f.severity, "5.0"),
+                },
+                "help": {"text": f.recommendation or "See message."},
+            }
+        text = f.message
+        if f.recommendation:
+            text += f"\nRecommendation: {f.recommendation}"
+        results.append({
+            "ruleId": f.code,
+            "level": _SARIF_LEVEL.get(f.severity, "warning"),
+            "message": {"text": text},
+            "locations": [{
+                "physicalLocation": {
+                    "artifactLocation": {"uri": artifact_uri},
+                }
+            }],
+            "properties": {
+                "severity": f.severity,
+                "record": f.record,
+                "domain": res.domain,
+            },
+        })
+    log = {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": TOOL_NAME,
+                    "informationUri": "https://github.com/cognis-digital/dmarcaudit",
+                    "version": TOOL_VERSION,
+                    "rules": list(rules.values()),
+                }
+            },
+            "results": results,
+            "properties": {
+                "domain": res.domain,
+                "grade": res.grade,
+                "score": res.score,
+                "spoofable": res.spoofable,
+            },
+        }],
+    }
+    return json.dumps(log, indent=2)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog=TOOL_NAME,
@@ -187,7 +268,7 @@ def _build_parser() -> argparse.ArgumentParser:
     a.add_argument("--spf", help="Raw SPF TXT record string.")
     a.add_argument("--dmarc", help="Raw DMARC TXT record string.")
     a.add_argument("--dkim", help="Raw DKIM public-key TXT record string.")
-    a.add_argument("--format", choices=["table", "json", "html"],
+    a.add_argument("--format", choices=["table", "json", "html", "sarif"],
                    default="table", help="Output format.")
     a.add_argument("--output", "-o", help="Write report to this file path.")
     return p
@@ -218,6 +299,8 @@ def main(argv: Optional[list] = None) -> int:
         out = json.dumps(res.to_dict(), indent=2)
     elif args.format == "html":
         out = _render_html(res)
+    elif args.format == "sarif":
+        out = _render_sarif(res)
     else:
         out = _render_table(res)
 

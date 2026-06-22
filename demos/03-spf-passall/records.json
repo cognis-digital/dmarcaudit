@@ -1,0 +1,6 @@
+{
+  "domain": "legacy-mailer.example",
+  "spf": "v=spf1 a mx +all",
+  "dmarc": "v=DMARC1; p=none",
+  "dkim": ""
+}

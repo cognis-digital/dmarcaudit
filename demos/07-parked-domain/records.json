@@ -1,0 +1,6 @@
+{
+  "domain": "we-dont-send.example",
+  "spf": "v=spf1 -all",
+  "dmarc": "v=DMARC1; p=reject; sp=reject; rua=mailto:dmarc@we-dont-send.example",
+  "dkim": ""
+}

@@ -1,55 +1,35 @@
-# Demo 01 — Basic email-auth posture audit
+# Demo 01 — "We have all three" but still spoofable
 
-A mid-size company, `example-corp.com`, has published SPF, DMARC and DKIM
-records. On paper they "have all three," but the configuration still leaves the
-domain spoofable. This demo shows DMARCAUDIT catching that.
+A mid-size company, `example-corp.com`, published SPF, DMARC and DKIM. On
+paper they "have all three", yet the domain is still trivially spoofable.
 
-## Input
+## Where the data came from
+A sysadmin captured the live records with `dig`:
 
-`records.json` holds DNS TXT records the operator already captured (e.g. via
-`dig TXT example-corp.com`, `dig TXT _dmarc.example-corp.com`, and
-`dig TXT selector1._domainkey.example-corp.com`). No network is used.
+```sh
+dig +short TXT example-corp.com
+dig +short TXT _dmarc.example-corp.com
+dig +short TXT selector1._domainkey.example-corp.com
+```
+…and pasted them into `records.json`. No network is used by the tool.
 
-- **SPF**: ends in `~all` (softfail, not hardfail) — better than nothing but
-  unauthorized senders are only flagged.
-- **DMARC**: `p=none` — monitor-only, so spoofed mail still reaches inboxes.
-- **DKIM**: ~1024-bit RSA key (deprecated).
+- **SPF** ends in `~all` (softfail, not hardfail).
+- **DMARC** is `p=none` (monitor-only) — spoofed mail still hits inboxes.
+- **DKIM** is a ~1024-bit RSA key (deprecated).
 
 ## Run it
-
 ```sh
-# Human-readable table (default)
 python -m dmarcaudit audit --input demos/01-basic/records.json
-
-# Machine-readable JSON for pipelines
 python -m dmarcaudit audit --input demos/01-basic/records.json --format json
-
-# Shareable self-contained HTML report (the "UI")
-python -m dmarcaudit audit --input demos/01-basic/records.json \
-    --format html --output report.html
+python -m dmarcaudit audit --input demos/01-basic/records.json     --format html --output report.html
 ```
 
-You can also pass records inline instead of a file:
-
-```sh
-python -m dmarcaudit audit --domain test.com --spf "v=spf1 +all" --format table
-```
-
-## Expected outcome
-
-- Grade is capped at **D/F** because DMARC is not enforcing (`p=none`), so the
-  domain is **spoofable**.
-- Findings flag `DMARC_POLICY_NONE` (HIGH), `SPF_SOFTFAIL` (MEDIUM) and
+## Expected
+- Grade capped at **D/F**, **Spoofable: YES** (DMARC not enforcing).
+- Findings: `DMARC_POLICY_NONE` (HIGH), `SPF_SOFTFAIL` (MEDIUM),
   `DKIM_1024_KEY` (MEDIUM).
-- The process exits **non-zero** (a HIGH finding / spoofable domain), so it can
-  gate CI or a posture-monitoring cron.
+- Exit code **1** — usable as a CI / cron gate.
 
-## What "good" looks like
-
-```sh
-python -m dmarcaudit audit --domain hardened.com \
-  --spf "v=spf1 include:_spf.google.com -all" \
-  --dmarc "v=DMARC1; p=reject; rua=mailto:d@hardened.com; pct=100" \
-  --dkim "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD1Z8xQ2bF8vQ3kP9mYwRtJ0aLcVnB7eHsX4uYi2dZ5fGq1oWpTkLmN3rScDgHjFvBxUaEoIzPwQ7yMnRtVbCdEfGhIjKlMnOpQrStUvWxYz0123456789AbCdEfGhIjKlMnOpQrStUvWxYzQIDAQAB"
-```
-This reaches a passing grade and exits 0.
+## How to act
+Tighten DMARC to `p=quarantine` → `p=reject`, move SPF to `-all`, and rotate
+DKIM to a 2048-bit key (see demo 06 for the hardened end state).

@@ -2,5 +2,5 @@
   "domain": "example-corp.com",
   "spf": "v=spf1 include:_spf.google.com include:sendgrid.net ~all",
   "dmarc": "v=DMARC1; p=none; rua=mailto:dmarc@example-corp.com; pct=100",
-  "dkim": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD1Z8xQ2bF8vQ3kP9mYwRtJ0aLcVnB7eHsX4uYi2dZ5fGq1oWpTkLmN3rScDgHjFvBxUaEoIzPwQ7yMnRtVbCdEfGhIjKlMnOpQrStUvWxYz0123456789AbCdEfGhIjKlMnOpQrStUvWxYzQIDAQAB"
+  "dkim": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDnd2CofUYPoqEU1TTeiD9wJFu4qRAvnF+DEzSVXy2JxGEvJtlmnFdKapuVYzdZN7nJcXcNp5W/PaNMRYZdxNBd4w5wQdhWo6usbN7OpfGWL14hbr5SlPxhOlu9k9irq4MDm4CbS6k5Bv9p/5vv35ZTtq39ZuM0t8DyXCsqc1qmvQIDAQAB"
 }

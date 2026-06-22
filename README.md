@@ -36,7 +36,7 @@
 
 pip install cognis-dmarcaudit
 
-dmarcaudit scan .            # → prioritized findings in seconds
+dmarcaudit audit --input records.json    # → graded posture + prioritized findings
 
 ```
 
@@ -73,7 +73,7 @@ dmarcaudit scan .            # → prioritized findings in seconds
 
 
 
-- [Why dmarcaudit?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
+- [Why dmarcaudit?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Demos](#demos) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
 
 
 
@@ -101,15 +101,19 @@ Grade SPF/DKIM/DMARC posture & spoofability from DNS records — without standin
 
 
 
-- ✅ Parse Spf
+- ✅ Parse SPF, DMARC and DKIM TXT records (offline — feed it a `dig` dump)
 
-- ✅ Parse Dmarc
+- ✅ Grade spoofability 0–100 with a letter grade and prioritized findings
 
-- ✅ Parse Dkim
+- ✅ Catches the real failure modes: `+all` pass-all, `p=none`, softfail,
+  `>10` SPF lookups (RFC 7208), partial `pct`, `sp=none`, weak DKIM keys
 
-- ✅ Grade
+- ✅ Output as **table · JSON · HTML · SARIF 2.1.0** (`--format sarif` for
+  GitHub code-scanning / SIEM ingest)
 
-- ✅ Audit Domain
+- ✅ Non-zero exit on HIGH+ or spoofable → drop-in CI / cron gate
+
+- ✅ Eight runnable [demos](demos/) covering distinct real-world scenarios
 
 - ✅ Runs on Linux/macOS/Windows · Docker · devcontainer
 
@@ -133,11 +137,16 @@ pip install cognis-dmarcaudit
 
 dmarcaudit --version
 
-dmarcaudit scan .                       # scan current project
+# Audit inline records (no file needed):
+dmarcaudit audit --domain example.com \
+  --spf "v=spf1 include:_spf.google.com -all" \
+  --dmarc "v=DMARC1; p=reject; rua=mailto:dmarc@example.com; pct=100"
 
-dmarcaudit scan . --format json         # machine-readable
-
-dmarcaudit scan . --fail-on high        # CI gate (non-zero exit)
+# Audit a captured dig dump:
+dmarcaudit audit --input records.json                  # graded table
+dmarcaudit audit --input records.json --format json    # machine-readable
+dmarcaudit audit --input records.json --format sarif    # code-scanning / SIEM
+dmarcaudit audit --input records.json || echo "posture needs work"  # CI gate
 
 ```
 
@@ -155,19 +164,63 @@ dmarcaudit scan . --fail-on high        # CI gate (non-zero exit)
 
 ```text
 
-$ dmarcaudit scan .
-
-  [HIGH    ] DMA-001  example finding             (./src/app.py)
-
-  [MEDIUM  ] DMA-002  another signal              (./config.yaml)
-
-
-
-  2 findings · risk score 5 · 38ms
-
+$ dmarcaudit audit --input demos/03-spf-passall/records.json
+================================================================
+ DMARCAUDIT  legacy-mailer.example
+================================================================
+ Grade      : F   (score 35/100)
+ Spoofable  : YES — at risk
+ SPF        : present  all=+all
+ DMARC      : present  p=none
+ DKIM       : MISSING
+----------------------------------------------------------------
+ Findings (4):
+  [CRITICAL] SPF/SPF_PASSALL
+      SPF ends in +all — ANY host on the Internet passes SPF ...
+      -> Replace +all with -all immediately.
+  [HIGH    ] DMARC/DMARC_POLICY_NONE
+      DMARC policy is p=none (monitor only) ...
+  ...
+================================================================
 ```
 
 
+
+<div align="right"><a href="#top">↑ back to top</a></div>
+
+
+
+<a name="demos"></a>
+
+## Demos
+
+Eight self-contained, runnable scenarios live in [`demos/`](demos/). Each folder
+has a `records.json` (the tool's real input format — a captured `dig` dump) and
+a `SCENARIO.md` explaining where the data came from, the exact command, what to
+expect, and how to remediate. Every demo is verified by the test suite to fire
+the findings it documents. The DKIM keys are **real** RSA public keys
+(2048/1024/512-bit) generated locally — no fabricated key material.
+
+| Demo | Scenario | Headline finding |
+|---|---|---|
+| [`01-basic`](demos/01-basic/) | "We have all three" but still spoofable | `DMARC_POLICY_NONE` (HIGH) |
+| [`02-hardened-pass`](demos/02-hardened-pass/) | Correctly hardened gold-standard domain | none — grade A, exit 0 |
+| [`03-spf-passall`](demos/03-spf-passall/) | Catastrophic `+all` (anyone can send as you) | `SPF_PASSALL` (CRITICAL) |
+| [`04-spf-too-many-lookups`](demos/04-spf-too-many-lookups/) | SPF over the 10-lookup limit → PermError | `SPF_TOO_MANY_LOOKUPS` (HIGH) |
+| [`05-dkim-weak-key`](demos/05-dkim-weak-key/) | Forgeable 512-bit DKIM key | `DKIM_WEAK_KEY` (CRITICAL) |
+| [`06-partial-rollout`](demos/06-partial-rollout/) | DMARC deployment caught mid-flight | `DMARC_PARTIAL_PCT` + `sp=none` |
+| [`07-parked-domain`](demos/07-parked-domain/) | Non-sending domain locked down correctly | spoofable: no |
+| [`08-subdomain-takeover-vector`](demos/08-subdomain-takeover-vector/) | Strong policy undermined by `sp=none` | `DMARC_SUBDOMAIN_NONE` |
+
+```sh
+# Run any demo:
+python -m dmarcaudit audit --input demos/03-spf-passall/records.json
+# Export SARIF for code-scanning:
+python -m dmarcaudit audit --input demos/03-spf-passall/records.json \
+    --format sarif --output dmarc.sarif
+```
+
+(Regenerate the corpus with `python scripts/gen_demos.py`.)
 
 <div align="right"><a href="#top">↑ back to top</a></div>
 

@@ -1,0 +1,6 @@
+{
+  "domain": "rollout-phase2.example",
+  "spf": "v=spf1 include:_spf.google.com ~all",
+  "dmarc": "v=DMARC1; p=quarantine; pct=25; sp=none; rua=mailto:dmarc@rollout-phase2.example",
+  "dkim": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo6f2qBNj811HK+iXkcVZ2RaaoAcgj8TPTokcPdMJnQPvjLpJtUc441mqtQCZNjc8F1x/G7nyRA4r+AnC/crjkLAEdJDUHROAZqc1UJJLr5FN8XwWIx4O+Zk0yw1rWgPsCwB/PwZDtLgL8YAVlRX+6ygxWjJlvy7QIka7HTcQL33Hh1XddasFdGOnixgLqRGFgImVGIRW09VerwV2xVLN7gELNDGowZWBh5OdkUeLqi/c4eG2b+AiwcmuGR3G4u8sbyXY1oHNqo7lSicUx4cYSJWZJOXJ5xDfaFv8bdd0wxyQmEyNsHsieaYpC/dhK5t/hoHB2GTqrF8fZBBuBG5S/QIDAQAB"
+}

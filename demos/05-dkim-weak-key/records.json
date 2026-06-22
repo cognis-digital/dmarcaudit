@@ -1,0 +1,6 @@
+{
+  "domain": "old-appliance.example",
+  "spf": "v=spf1 ip4:198.51.100.25 -all",
+  "dmarc": "v=DMARC1; p=reject; rua=mailto:dmarc@old-appliance.example",
+  "dkim": "v=DKIM1; k=rsa; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKW8aKnGpflynUWfpqSOUNbWjE3GEFsTIQ4CqidjPXJ+lsJilkHfRSIOk3pQ5R8azrfXZeDvahxoZSEDIqqK+NUCAwEAAQ=="
+}
