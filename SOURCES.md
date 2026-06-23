@@ -44,3 +44,31 @@ _Always-current feeds, live web-search queries, and keyless APIs for real-time m
 - **api** · https://www.marinetraffic.com (consumer vessel tracking)
 - **api** · https://sanctionssearch.ofac.treas.gov (OFAC SDN, free)
 
+## Bundled threat-feed catalog (edge / air-gap enrichment)
+
+The optional `--enrich` mode and the bundled ingester (`dmarcaudit/datafeeds.py`)
+draw from a real, mostly-keyless feed catalog shipped in
+[`dmarcaudit/data_feeds_2026.json`](dmarcaudit/data_feeds_2026.json) — 35 feeds
+across vuln, threat-intel, compliance, OSINT and cloud domains. dmarcaudit uses
+the **abuse.ch** subset to flag SPF records that authorize a host already on a
+public block list. All feeds are fetched over HTTPS, cached to disk, and
+re-served offline (`--offline`) for air-gapped use; the cache can be
+sneakernetted with `snapshot-export` / `snapshot-import`.
+
+Used by `--enrich`:
+- **threat-intel** · abuse.ch **URLhaus** (malware URLs/domains, keyless)
+- **threat-intel** · abuse.ch **Feodo Tracker** (botnet C2 IPs, keyless)
+- **threat-intel** · abuse.ch **ThreatFox** (IOCs, keyless)
+
+Also catalogued (for the broader suite / future enrichment): CISA KEV, EPSS,
+OSV, NVD CVE, MITRE ATT&CK STIX, NIST OSCAL 800-53, OFAC, GDELT, cloud IP
+ranges. List them with:
+
+```bash
+python -m dmarcaudit.datafeeds list
+python -m dmarcaudit.datafeeds list --domain threat-intel
+```
+
+No intel is fabricated: an enrichment finding fires only on a real match in a
+feed you actually fetched/cached.
+

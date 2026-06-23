@@ -7,9 +7,37 @@ prior DNS dump), so the tool is fully offline and testable.
 """
 from __future__ import annotations
 
+import json
+import os
 import re
 from dataclasses import dataclass, field, asdict
 from typing import Optional
+
+# --------------------------------------------------------------------------- #
+# Identity. TOOL_VERSION tracks the repo-root VERSION file (single source of
+# truth) and falls back to a constant when the file is unavailable (e.g. when
+# the package is imported from a wheel without the sibling VERSION file).
+# --------------------------------------------------------------------------- #
+TOOL_NAME = "dmarcaudit"
+
+
+def _read_version() -> str:
+    here = os.path.dirname(os.path.abspath(__file__))
+    for candidate in (
+        os.path.join(here, os.pardir, "VERSION"),
+        os.path.join(here, "VERSION"),
+    ):
+        try:
+            with open(candidate, "r", encoding="utf-8") as fh:
+                v = fh.read().strip()
+                if v:
+                    return v
+        except OSError:
+            continue
+    return "0.2.4"
+
+
+TOOL_VERSION = _read_version()
 
 # Severity weights: higher = worse. CRITICAL findings mean the domain is
 # trivially spoofable.
@@ -330,3 +358,86 @@ def audit_domain(domain: str, spf_record=None, dmarc_record=None,
     return AuditResult(domain=domain, grade=letter, score=score,
                        spoofable=spoofable, spf=spf, dmarc=dmarc, dkim=dkim,
                        findings=findings)
+
+
+# --------------------------------------------------------------------------- #
+# SPF host extraction (used by the optional abuse-feed enrichment, and by the
+# CLI's --explain output). Pure-offline string parsing.
+# --------------------------------------------------------------------------- #
+_IP4_RE = re.compile(r"ip4:([0-9.]+)(?:/\d+)?", re.I)
+_IP6_RE = re.compile(r"ip6:([0-9a-f:]+)(?:/\d+)?", re.I)
+_INCLUDE_RE = re.compile(r"(?:include|redirect=|exists):?([A-Za-z0-9._-]+)", re.I)
+
+
+def spf_hosts(spf: dict) -> dict:
+    """Extract the IPs and include/redirect domains an SPF record authorizes.
+
+    Returns ``{"ip4": [...], "ip6": [...], "domains": [...]}``. This is the set
+    of senders a receiver would treat as legitimate — exactly the set worth
+    cross-checking against abuse/C2 blocklists (see ``enrich_with_feeds``).
+    """
+    raw = (spf or {}).get("raw") or ""
+    return {
+        "ip4": sorted(set(_IP4_RE.findall(raw))),
+        "ip6": sorted(set(_IP6_RE.findall(raw))),
+        "domains": sorted({d.lower() for d in _INCLUDE_RE.findall(raw)}),
+    }
+
+
+def enrich_with_feeds(result: AuditResult, blocklist) -> AuditResult:
+    """Cross-check SPF-authorized senders against an abuse/C2 blocklist.
+
+    ``blocklist`` is any object exposing ``.has_ip(ip)`` / ``.has_domain(d)``
+    (e.g. ``dmarcaudit.feeds.AbuseBlocklist`` built from cached abuse.ch feeds).
+    Adds HIGH findings when an authorized sender is on a known-bad list — a real
+    indicator that the domain's SPF includes a compromised or abused host. This
+    never fabricates intel: a finding fires only on a real cached-feed hit.
+    """
+    hosts = spf_hosts(result.spf)
+    for ip in hosts["ip4"] + hosts["ip6"]:
+        if blocklist.has_ip(ip):
+            result.findings.append(Finding(
+                "HIGH", "SPF", "SPF_AUTHORIZES_ABUSE_IP",
+                f"SPF authorizes {ip}, which appears on a cached abuse/C2 "
+                "blocklist (abuse.ch). Mail from this host would pass SPF.",
+                "Remove the host from SPF and investigate why it is listed."))
+    for dom in hosts["domains"]:
+        if blocklist.has_domain(dom):
+            result.findings.append(Finding(
+                "HIGH", "SPF", "SPF_AUTHORIZES_ABUSE_DOMAIN",
+                f"SPF include/redirect references {dom}, which appears on a "
+                "cached abuse blocklist (abuse.ch URLhaus).",
+                "Remove the include and verify the provider is not compromised."))
+    result.findings.sort(key=lambda f: -SEVERITY_ORDER[f.severity])
+    return result
+
+
+def scan(target, *, spf=None, dmarc=None, dkim=None) -> AuditResult:
+    """Convenience entrypoint shared by the MCP server and language ports.
+
+    ``target`` may be (a) a path to a records JSON file, (b) a JSON string, or
+    (c) a bare domain label (combined with the spf/dmarc/dkim kwargs). Always
+    offline — no DNS is performed here.
+    """
+    domain, _spf, _dmarc, _dkim = target, spf, dmarc, dkim
+    if isinstance(target, str):
+        loaded = None
+        if os.path.isfile(target):
+            with open(target, "r", encoding="utf-8") as fh:
+                loaded = json.load(fh)
+        else:
+            stripped = target.strip()
+            if stripped.startswith("{"):
+                loaded = json.loads(stripped)
+        if isinstance(loaded, dict):
+            domain = loaded.get("domain", "unknown")
+            _spf = loaded.get("spf", spf)
+            _dmarc = loaded.get("dmarc", dmarc)
+            _dkim = loaded.get("dkim", dkim)
+    return audit_domain(domain or "unknown", _spf, _dmarc, _dkim)
+
+
+def to_json(result: AuditResult, indent: int = 2) -> str:
+    """Serialize an AuditResult (or dict) to a JSON string."""
+    payload = result.to_dict() if isinstance(result, AuditResult) else result
+    return json.dumps(payload, indent=indent)

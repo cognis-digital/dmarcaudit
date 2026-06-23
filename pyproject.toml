@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cognis-dmarcaudit"
-version = "0.1.1"
-description = "Grade SPF/DKIM/DMARC posture & spoofability from DNS records"
+version = "0.2.4"
+description = "Grade SPF/DKIM/DMARC posture & spoofability from DNS records (passive by default; optional authorized read-only active DNS)"
 authors = [{name = "Cognis Digital", email = "suite@cognis.digital"}]
 license = {text = "LicenseRef-COCL-1.0"}
 requires-python = ">=3.10"
@@ -34,6 +34,10 @@ dmarcaudit = "dmarcaudit.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["dmarcaudit"]
+include = ["dmarcaudit/data_feeds_2026.json"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"VERSION" = "dmarcaudit/VERSION"
 
 [tool.hatch.metadata]
 allow-direct-references = true

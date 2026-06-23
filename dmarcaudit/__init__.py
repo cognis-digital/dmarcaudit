@@ -1,11 +1,17 @@
-"""dmarcaudit — part of the Cognis Neural Suite."""
-try:  # re-export the tool's public API + identity from core
-    from dmarcaudit.core import *  # noqa: F401,F403
-except Exception:  # pragma: no cover
-    pass
-try:
-    from dmarcaudit.core import TOOL_NAME, TOOL_VERSION
-except Exception:  # pragma: no cover
-    TOOL_NAME = "dmarcaudit"
-    TOOL_VERSION = "0.1.0"
+"""dmarcaudit — part of the Cognis Neural Suite.
+
+Grade SPF/DKIM/DMARC posture & spoofability from DNS records, fully offline.
+"""
+from dmarcaudit.core import (  # noqa: F401
+    TOOL_NAME, TOOL_VERSION,
+    Finding, AuditResult, SEVERITY_ORDER,
+    parse_spf, parse_dmarc, parse_dkim, grade, audit_domain,
+    spf_hosts, enrich_with_feeds, scan, to_json,
+)
+
 __version__ = TOOL_VERSION
+__all__ = [
+    "TOOL_NAME", "TOOL_VERSION", "Finding", "AuditResult", "SEVERITY_ORDER",
+    "parse_spf", "parse_dmarc", "parse_dkim", "grade", "audit_domain",
+    "spf_hosts", "enrich_with_feeds", "scan", "to_json",
+]

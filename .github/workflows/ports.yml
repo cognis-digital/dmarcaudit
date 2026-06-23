@@ -1,0 +1,55 @@
+name: ports
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Test JS port
+        run: node ports/javascript/test.js
+      - name: Smoke CLI (spoofable -> exit 1)
+        run: |
+          set +e
+          node ports/javascript/index.js audit --domain x.com --spf "v=spf1 +all" >/dev/null
+          test $? -eq 1 || { echo "expected exit 1"; exit 1; }
+
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+      - name: Build + test Go port
+        working-directory: ports/go
+        run: |
+          go build ./...
+          go test ./...
+      - name: Smoke CLI against a demo
+        working-directory: ports/go
+        run: |
+          set +e
+          go run . audit --input ../../demos/03-spf-passall/records.json >/dev/null
+          test $? -eq 1 || { echo "expected exit 1 for spoofable demo"; exit 1; }
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build + test Rust port
+        working-directory: ports/rust
+        run: |
+          cargo build
+          cargo test
+      - name: Smoke CLI
+        working-directory: ports/rust
+        run: |
+          set +e
+          cargo run -- audit --domain x.com --spf "v=spf1 +all" >/dev/null
+          test $? -eq 1 || { echo "expected exit 1"; exit 1; }

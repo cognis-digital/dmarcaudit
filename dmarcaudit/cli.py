@@ -53,6 +53,51 @@ def _load_input(args) -> dict:
     return data
 
 
+def _resolve_active(args) -> dict:
+    """Resolve SPF/DMARC/DKIM live via the authorization-gated active resolver.
+
+    Enforces --authorized + a non-empty allowlist + a rate limit, and performs
+    only read-only DNS TXT lookups. Returns a records dict like --input.
+    """
+    from .active import ActiveResolver, Allowlist, RateLimiter, AuthorizationError
+
+    domain = args.domain
+    if not domain and args.input:
+        # allow --active with --input to supply just the domain label
+        try:
+            with open(args.input, "r", encoding="utf-8") as fh:
+                domain = json.load(fh).get("domain")
+        except (OSError, json.JSONDecodeError):
+            domain = None
+    if not domain:
+        raise AuthorizationError("active mode needs --domain to resolve")
+
+    allow = Allowlist.from_iter(args.allow) if args.allow else Allowlist.from_env()
+    resolver = ActiveResolver(
+        authorized=bool(args.authorized),
+        allowlist=allow,
+        resolver=args.resolver or "127.0.0.1",
+        port=getattr(args, "port", 53),
+        limiter=RateLimiter(max(args.rate, 0.1)),
+    )
+    if not args.resolver:
+        # use the system resolver when one wasn't pinned
+        resolver.resolver = _system_resolver()
+    return resolver.fetch_records(domain, dkim_selector=args.dkim_selector)
+
+
+def _system_resolver() -> str:
+    """Best-effort system DNS resolver IP (falls back to a public resolver)."""
+    try:
+        with open("/etc/resolv.conf", "r", encoding="utf-8") as fh:
+            for line in fh:
+                if line.strip().startswith("nameserver"):
+                    return line.split()[1]
+    except OSError:
+        pass
+    return "1.1.1.1"
+
+
 def _render_table(res: AuditResult) -> str:
     lines = []
     lines.append("=" * 64)
@@ -271,6 +316,38 @@ def _build_parser() -> argparse.ArgumentParser:
     a.add_argument("--format", choices=["table", "json", "html", "sarif"],
                    default="table", help="Output format.")
     a.add_argument("--output", "-o", help="Write report to this file path.")
+
+    # --- Optional threat-feed enrichment (offline by default) -------------- #
+    a.add_argument("--enrich", action="store_true",
+                   help="Cross-check SPF-authorized hosts against cached abuse "
+                        "feeds (abuse.ch). Offline unless --refresh-feeds.")
+    a.add_argument("--refresh-feeds", action="store_true",
+                   help="With --enrich, refresh abuse feeds online before "
+                        "checking (otherwise cache-only / air-gap safe).")
+
+    # --- Optional ACTIVE mode (OFF by default; authorization-gated) -------- #
+    grp = a.add_argument_group(
+        "active mode (read-only DNS, OFF by default — authorized use only)")
+    grp.add_argument("--active", action="store_true",
+                     help="Resolve records live via read-only DNS TXT lookups "
+                          "instead of --input/flags. Requires --authorized.")
+    grp.add_argument("--authorized", action="store_true",
+                     help="Affirm you are authorized to actively assess the "
+                          "target. Required for --active.")
+    grp.add_argument("--allow", action="append", default=None, metavar="DOMAIN",
+                     help="Allowlisted domain for active mode (repeatable). "
+                          "Falls back to env DMARCAUDIT_ALLOW.")
+    grp.add_argument("--resolver", default=None,
+                     help="DNS resolver IP for active mode (default: system / "
+                          "127.0.0.1 in tests).")
+    grp.add_argument("--port", type=int, default=53,
+                     help="DNS resolver UDP port for active mode (default 53).")
+    grp.add_argument("--rate", type=float, default=2.0,
+                     help="Active-mode query rate limit (queries/sec, default 2).")
+    grp.add_argument("--dkim-selector", default="default",
+                     help="DKIM selector to query in active mode (default: default).")
+
+    sub.add_parser("mcp", help="Run the MCP stdio server (needs the [mcp] extra).")
     return p
 
 
@@ -278,22 +355,48 @@ def main(argv: Optional[list] = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
+    if args.command == "mcp":
+        from .mcp_server import serve
+        return serve()
+
     if args.command != "audit":
         parser.print_help()
         return 2
 
-    if not args.input and not (args.domain or args.spf or args.dmarc or args.dkim):
-        parser.error("provide --input or at least one of "
-                     "--domain/--spf/--dmarc/--dkim")
-
-    try:
-        data = _load_input(args)
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"error: could not read input: {exc}", file=sys.stderr)
-        return 2
+    # ----- Active mode: resolve records live via read-only DNS (gated) ----- #
+    if getattr(args, "active", False):
+        try:
+            data = _resolve_active(args)
+        except Exception as exc:  # AuthorizationError / NotAllowed / DNS error
+            print(f"error: active mode: {exc}", file=sys.stderr)
+            return 2
+    else:
+        if not args.input and not (args.domain or args.spf or args.dmarc
+                                   or args.dkim):
+            parser.error("provide --input or at least one of "
+                         "--domain/--spf/--dmarc/--dkim (or --active)")
+        try:
+            data = _load_input(args)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"error: could not read input: {exc}", file=sys.stderr)
+            return 2
 
     res = audit_domain(data["domain"], data.get("spf"), data.get("dmarc"),
                        data.get("dkim"))
+
+    if getattr(args, "enrich", False):
+        try:
+            from .core import enrich_with_feeds
+            from . import feeds as _feeds
+            bl = _feeds.load(offline=not args.refresh_feeds)
+            if len(bl):
+                enrich_with_feeds(res, bl)
+            else:
+                print("note: no abuse feeds cached; skipping enrichment "
+                      "(run `python -m dmarcaudit.datafeeds update urlhaus "
+                      "feodo-c2 threatfox`)", file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001
+            print(f"note: enrichment unavailable: {exc}", file=sys.stderr)
 
     if args.format == "json":
         out = json.dumps(res.to_dict(), indent=2)
