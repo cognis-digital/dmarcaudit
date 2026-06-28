@@ -1,0 +1,14 @@
+$ dmarcaudit-emit --help
+
+usage: dmarcaudit [-h] [--version] {audit,mcp} ...
+
+Grade SPF/DKIM/DMARC posture & spoofability from DNS records.
+
+positional arguments:
+  {audit,mcp}
+    audit      Audit a domain's email-auth records.
+    mcp        Run the MCP stdio server (needs the [mcp] extra).
+
+options:
+  -h, --help   show this help message and exit
+  --version    show program's version number and exit

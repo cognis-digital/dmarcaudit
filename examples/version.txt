@@ -1,0 +1,3 @@
+$ dmarcaudit-emit --version
+
+dmarcaudit 0.2.4
