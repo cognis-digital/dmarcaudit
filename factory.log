@@ -1,0 +1,17 @@
+[2026-07-20 21:34:27] === enhance · dmarcaudit · words=120000 loc>=10000 langs=9 push=True ===
+[2026-07-20 21:34:34] phase DOCS — longform 120000-word corpus -> docs/corpus/
+[2026-07-21 05:22:41] phase POLYGLOT — expanding to >= 10000 LOC across 9 languages
+[2026-07-21 05:23:12]   facets: ['dns_record_fetcher', 'dmarc_parser_validator', 'spf_analyzer', 'dkim_key_extractor_validator', 'spoofability_simulator', 'fix_priority_calculator_reporter']
+[2026-07-21 05:25:07]   +polyglot/python/dns_record_fetcher.py  (loc now ~4998)
+[2026-07-21 05:27:02]   +polyglot/go/dns_record_fetcher.go  (loc now ~5398)
+[2026-07-21 05:28:58]   +polyglot/rust/dns_record_fetcher.rs  (loc now ~5872)
+[2026-07-21 05:30:53]   +polyglot/typescript/dns_record_fetcher.ts  (loc now ~6392)
+[2026-07-21 05:32:47]   +polyglot/c/dns_record_fetcher.c  (loc now ~6831)
+[2026-07-21 05:34:42]   +polyglot/cpp/dns_record_fetcher.cpp  (loc now ~7259)
+[2026-07-21 05:37:42]   +polyglot/ruby/dns_record_fetcher.rb  (loc now ~7508)
+[2026-07-21 05:39:37]   +polyglot/csharp/dns_record_fetcher.cs  (loc now ~7984)
+[2026-07-21 05:41:32]   +polyglot/python/dmarc_parser_validator.py  (loc now ~8460)
+[2026-07-21 05:43:27]   +polyglot/go/dmarc_parser_validator.go  (loc now ~8925)
+[2026-07-21 05:45:22]   +polyglot/rust/dmarc_parser_validator.rs  (loc now ~9365)
+[2026-07-21 05:47:17]   +polyglot/typescript/dmarc_parser_validator.ts  (loc now ~9830)
+[2026-07-21 05:49:11]   +polyglot/c/dmarc_parser_validator.c  (loc now ~10230)
