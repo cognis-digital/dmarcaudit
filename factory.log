@@ -15,3 +15,8 @@
 [2026-07-21 05:45:22]   +polyglot/rust/dmarc_parser_validator.rs  (loc now ~9365)
 [2026-07-21 05:47:17]   +polyglot/typescript/dmarc_parser_validator.ts  (loc now ~9830)
 [2026-07-21 05:49:11]   +polyglot/c/dmarc_parser_validator.c  (loc now ~10230)
+[2026-07-21 05:49:17] === done · dmarcaudit · loc=10230 · {'committed': True, 'pushed': True, 'push_err': ''} ===
+[2026-09-10 08:01:33] === enhance · dmarcaudit · words=120000 loc>=10000 langs=9 push=True ===
+[2026-09-10 08:01:38] phase DOCS — longform 120000-word corpus -> docs/corpus/
+[2026-09-10 16:40:36] phase POLYGLOT — expanding to >= 10000 LOC across 9 languages
+[2026-09-10 16:41:06]   facets: ['dns_record_fetcher', 'dmarc_parser', 'spf_parser', 'dkim_parser', 'spoofability_analyzer', 'fix_generator']
